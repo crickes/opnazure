@@ -1,10 +1,14 @@
 # OPNsense Firewall on FreeBSD VM
 
-**New VNET + OPNsense with two NICs (Untrusted/Trusted)**
+**Step 1 - Deploy an Instance on Azure and setup a VNET**
+
+Besure to select Zone 1 in the Zones configuration
 
 [![Deploy To Azure](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazure.svg?sanitize=true)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fcrickes%2Fopnazure%2Fmaster%2Fazuredeploy.json)
 
-**New VNET + OPNsense with two NICs (Untrusted/Trusted) Existing VNET**
+**Step 2 - Deploy a second instance to use the existing VNET**
+
+Be sure to select zone 2 or 3 to ensure that the two servers are built in different availability zones.
 
 [![Deploy To Azure](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazure.svg?sanitize=true)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fcrickes%2Fopnazure%2Fmaster%2Fazuredeploy-TwoNICs.json)
 
