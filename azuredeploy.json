@@ -93,7 +93,10 @@
             "metadata": {
       "description": "OPNSense XML Config File"
       }
-    }  
+    },
+    "zone":{
+      "type": "string"
+    }
   },
   "variables": {
     "extensionName":"CustomScript",
@@ -165,7 +168,10 @@
             }
           ]
         }
-      }
+      },
+      "zones":[
+        "[parameters('zone')]"
+      ]
     },
     {
       "type": "Microsoft.Network/virtualNetworks",
