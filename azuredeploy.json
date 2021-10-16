@@ -55,6 +55,13 @@
       "description": "Trusted-Subnet Address Space"
         }
     },
+    "HASubnetCIDR": {
+      "type": "string",
+      "defaultValue": "10.0.2.0/24",
+      "metadata": {
+      "description": "HA-Subnet Address Space"
+        }
+    },
     "PublicIPAddressSku": {
       "type": "string",
       "defaultValue": "Basic",
@@ -92,11 +99,14 @@
     "extensionName":"CustomScript",
     "nic1": "[concat(parameters('virtualMachineName'),'-Untrusted-NIC')]",
     "nic2": "[concat(parameters('virtualMachineName'),'-Trusted-NIC')]",
+    "nic3": "[concat(parameters('virtualMachineName'),'-HA-NIC')]",
     "subnet1Name": "Untrusted-Subnet",
     "subnet2Name": "Trusted-Subnet",
+    "subnet3Name": "HA-Subnet",
     "publicIPAddressName": "[concat(parameters('virtualMachineName'),'-PublicIP')]",
     "subnet1Ref": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), variables('subnet1Name'))]",
     "subnet2Ref": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), variables('subnet2Name'))]",
+    "subnet3Ref": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), variables('subnet3Name'))]",
     "networkSecurityGroupName": "[concat(parameters('virtualMachineName'),'-NSG')]",
     "location": "[resourceGroup().location]"
   },
@@ -109,7 +119,8 @@
       "comments": "This is the virtual machine that you're building.",
       "dependsOn": [
         "[variables('nic1')]",
-        "[variables('nic2')]"
+        "[variables('nic2')]",
+        "[variables('nic3')]"
       ],
       "properties": {
         "osProfile": {
@@ -145,6 +156,12 @@
                 "primary": false
               },
               "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nic2'))]"
+            },
+            {
+              "properties": {
+                "primary": false
+              },
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nic3'))]"
             }
           ]
         }
@@ -176,6 +193,12 @@
             "name": "[variables('subnet2Name')]",
             "properties": {
               "addressPrefix": "[parameters('TrustedSubnetCIDR')]"
+            }
+          },
+          {
+            "name": "[variables('subnet3Name')]",
+            "properties": {
+              "addressPrefix": "[parameters('HASubnetCIDR')]"
             }
           }
         ]
@@ -233,6 +256,33 @@
             "properties": {
               "subnet": {
                 "id": "[variables('subnet2Ref')]"
+              },
+              "privateIPAllocationMethod": "Dynamic"
+            }
+          }
+        ]
+      }
+    },
+        {
+      "name": "[variables('nic3')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2017-06-01",
+      "location": "[variables('location')]",
+      "comments": "This will be your HA NIC",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]"
+      ],
+      "properties": {
+        "enableIPForwarding": true,
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+          },
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "subnet": {
+                "id": "[variables('subnet3Ref')]"
               },
               "privateIPAllocationMethod": "Dynamic"
             }
