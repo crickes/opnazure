@@ -82,6 +82,9 @@
               "metadata": {
         "description": "OPNSense XML Config File"
         }
+      },
+      "zone":{
+        "type": "string"
       }  
     },
     "variables": {
