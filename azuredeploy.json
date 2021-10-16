@@ -303,12 +303,14 @@
       "location": "[variables('location')]",
       "comments": "Public IP for your WAN NIC",
       "sku": {
-        "name": "[parameters('PublicIPAddressSku')]",
-        "tier": "Regional"
+        "name": "[parameters('PublicIPAddressSku')]"
       },
       "properties": {
         "publicIPAllocationMethod": "Static"
-      }
+      },
+                  "zones": [
+                "[parameters('zone')]"
+            ]
     },
     {
       "name": "[variables('networkSecurityGroupName')]",
