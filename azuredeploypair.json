@@ -1,0 +1,544 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "virtualMachineSize": {
+        "type": "string",
+        "defaultValue": "Standard_B2s",
+        "metadata": {
+          "description": "VM size, please choose a size which allow 2 NICs."
+        }
+      },
+      "virtualMachineName1": {
+        "type": "string",
+        "defaultValue": "opns-01",
+        "metadata": {
+          "description": "OPN NVA Manchine Name"
+        }
+      },
+          "virtualMachineName2": {
+        "type": "string",
+        "defaultValue": "opns-02",
+        "metadata": {
+          "description": "OPN NVA Manchine Name"
+        }
+      },
+     "virtualNetworkName": {
+      "type": "string",
+      "defaultValue": "OPN-VNET",
+      "metadata": {
+        "description": "Virtual Nework Name"
+        }
+     },
+      "VNETAddress": {
+        "type": "string",
+        "defaultValue": "10.0.0.0/16",
+        "metadata": {
+        "description": "Virtual Address Space"
+          }
+      },
+      "UntrustedSubnetCIDR": {
+        "type": "string",
+        "defaultValue": "10.0.0.0/24",
+        "metadata": {
+        "description": "Untrusted-Subnet Address Space"
+          }
+      },
+      "TrustedSubnetCIDR": {
+        "type": "string",
+        "defaultValue": "10.0.1.0/24",
+        "metadata": {
+        "description": "Trusted-Subnet Address Space"
+          }
+      },
+      "HASubnetCIDR": {
+        "type": "string",
+        "defaultValue": "10.0.2.0/24",
+        "metadata": {
+        "description": "HA-Subnet Address Space"
+          }
+      },
+      "PublicIPAddressSku": {
+        "type": "string",
+        "defaultValue": "Basic",
+        "allowedValues": [
+          "Basic",
+          "Standard"
+        ],
+        "metadata": {
+          "description": "Specify Public IP SKU either Basic (lowest cost) or Standard (Required for HA LB)"
+        }
+      },
+      "OpnScriptURI": {
+        "type": "string",
+        "defaultValue": "https://raw.githubusercontent.com/dmauser/opnazure/master/scripts/",
+              "metadata": {
+        "description": "URI for Custom OPN Script and Config"
+        }
+      },
+      "ShellScriptName": {
+        "type": "string",
+        "defaultValue": "configureopnsense.sh",
+              "metadata": {
+        "description": "Shell Script to be executed"
+        }
+      },
+      "OpnConfigFile": {
+        "type": "string",
+        "defaultValue": "config.xml",
+              "metadata": {
+        "description": "OPNSense XML Config File"
+        }
+      },
+      "zoneA":{
+        "type": "string",
+        "defaultValue": "1"
+      },
+      "zoneB":{
+        "type": "string",
+        "defaultValue": "2"
+      }
+    },
+    "variables": {
+      "extensionName":"CustomScript",
+      "nicA1": "[concat(parameters('virtualMachineName1'),'-Untrusted-NIC')]",
+      "nicA2": "[concat(parameters('virtualMachineName1'),'-Trusted-NIC')]",
+      "nicA3": "[concat(parameters('virtualMachineName1'),'-HA-NIC')]",
+      "nicB1": "[concat(parameters('virtualMachineName2'),'-Untrusted-NIC')]",
+      "nicB2": "[concat(parameters('virtualMachineName2'),'-Trusted-NIC')]",
+      "nicB3": "[concat(parameters('virtualMachineName2'),'-HA-NIC')]",
+      "subnet1Name": "Untrusted-Subnet",
+      "subnet2Name": "Trusted-Subnet",
+      "subnet3Name": "HA-Subnet",
+      "publicIPAddressName1": "[concat(parameters('virtualMachineName1'),'-PublicIP')]",
+      "publicIPAddressName2": "[concat(parameters('virtualMachineName2'),'-PublicIP')]",
+      "subnet1Ref": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), variables('subnet1Name'))]",
+      "subnet2Ref": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), variables('subnet2Name'))]",
+      "subnet3Ref": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), variables('subnet3Name'))]",
+      "networkSecurityGroupName": "[concat(parameters('virtualNetworkName'),'-NSG')]",
+      "location": "[resourceGroup().location]",
+      "TempUsername":"tempuser",
+      "TempPassword":"Tempu$erTempu$er"
+    },
+    "resources": [
+      {
+        "name": "[parameters('virtualMachineName1')]",
+        "type": "Microsoft.Compute/virtualMachines",
+        "apiVersion": "2017-03-30",
+        "location": "[variables('location')]",
+        "comments": "This is the virtual machine that you're building.",
+        "dependsOn": [
+          "[variables('nicA1')]",
+          "[variables('nicA2')]",
+          "[variables('nicA3')]"
+        ],
+        "properties": {
+          "osProfile": {
+            "computerName": "[parameters('virtualMachineName1')]",
+            "adminUsername": "[variables('TempUsername')]",
+            "adminPassword": "[variables('TempPassword')]"
+          },
+          "hardwareProfile": {
+            "vmSize": "[parameters('virtualMachineSize')]"
+          },
+          "storageProfile": {
+            "imageReference": {
+              "publisher": "MicrosoftOSTC",
+              "offer": "FreeBSD",
+              "sku": "12.0",
+              "version": "latest"
+            },
+            "osDisk": {
+              "createOption": "FromImage"
+            },
+            "dataDisks": []
+          },
+          "networkProfile": {
+            "networkInterfaces": [
+              {
+                "properties": {
+                  "primary": true
+                },
+                "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicA1'))]"
+              },
+              {
+                "properties": {
+                  "primary": false
+                },
+                "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicA2'))]"
+              },
+              {
+                "properties": {
+                  "primary": false
+                },
+                "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicA3'))]"
+              }
+            ]
+          }
+        },
+        "zones":[
+          "[parameters('zoneA')]"
+        ]
+      },
+      {
+        "name": "[parameters('virtualMachineName2')]",
+        "type": "Microsoft.Compute/virtualMachines",
+        "apiVersion": "2017-03-30",
+        "location": "[variables('location')]",
+        "comments": "This is the virtual machine that you're building.",
+        "dependsOn": [
+          "[variables('nicB1')]",
+          "[variables('nicB2')]",
+          "[variables('nicB3')]"
+        ],
+        "properties": {
+          "osProfile": {
+            "computerName": "[parameters('virtualMachineName2')]",
+            "adminUsername": "[variables('TempUsername')]",
+            "adminPassword": "[variables('TempPassword')]"
+          },
+          "hardwareProfile": {
+            "vmSize": "[parameters('virtualMachineSize')]"
+          },
+          "storageProfile": {
+            "imageReference": {
+              "publisher": "MicrosoftOSTC",
+              "offer": "FreeBSD",
+              "sku": "12.0",
+              "version": "latest"
+            },
+            "osDisk": {
+              "createOption": "FromImage"
+            },
+            "dataDisks": []
+          },
+          "networkProfile": {
+            "networkInterfaces": [
+              {
+                "properties": {
+                  "primary": true
+                },
+                "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicB1'))]"
+              },
+              {
+                "properties": {
+                  "primary": false
+                },
+                "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicB2'))]"
+              },
+              {
+                "properties": {
+                  "primary": false
+                },
+                "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicB3'))]"
+              }
+            ]
+          }
+        },
+        "zones":[
+          "[parameters('zoneB')]"
+        ]
+      },
+      {
+        "type": "Microsoft.Network/virtualNetworks",
+        "name": "[parameters('virtualNetworkName')]",
+        "apiVersion": "2017-06-01",
+        "location": "[variables('location')]",
+        "comments": "This will build a Virtual Network.",
+        "dependsOn": [
+          "[variables('networkSecurityGroupName')]"
+        ],
+        "properties": {
+          "addressSpace": {
+            "addressPrefixes": [
+              "[parameters('VNETAddress')]"
+            ]
+          },
+          "subnets": [
+            {
+              "name": "[variables('subnet1Name')]",
+              "properties": {
+                "addressPrefix": "[parameters('UntrustedSubnetCIDR')]"
+              }
+            },
+            {
+              "name": "[variables('subnet2Name')]",
+              "properties": {
+                "addressPrefix": "[parameters('TrustedSubnetCIDR')]"
+              }
+            },
+            {
+              "name": "[variables('subnet3Name')]",
+              "properties": {
+                "addressPrefix": "[parameters('HASubnetCIDR')]"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "[variables('nicA1')]",
+        "type": "Microsoft.Network/networkInterfaces",
+        "apiVersion": "2017-06-01",
+        "location": "[variables('location')]",
+        "comments": "This will be your Primary NIC",
+        "dependsOn": [
+          "[variables('publicIpAddressName1')]",
+          "[variables('networkSecurityGroupName')]",
+          "[parameters('virtualNetworkName')]"
+        ],
+        "properties": {
+          "enableIPForwarding": true,
+          "networkSecurityGroup": {
+            "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+            },
+          "ipConfigurations": [
+            {
+              "name": "ipconfig1",
+              "properties": {
+                "subnet": {
+                  "id": "[variables('subnet1Ref')]"
+                },
+                "privateIPAllocationMethod": "Dynamic",
+                "publicIpAddress": {
+                  "id": "[resourceId('Microsoft.Network/publicIpAddresses', variables('publicIpAddressName1'))]"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "[variables('nicB1')]",
+        "type": "Microsoft.Network/networkInterfaces",
+        "apiVersion": "2017-06-01",
+        "location": "[variables('location')]",
+        "comments": "This will be your Primary NIC",
+        "dependsOn": [
+          "[variables('publicIpAddressName2')]",
+          "[variables('networkSecurityGroupName')]",
+          "[parameters('virtualNetworkName')]"
+        ],
+        "properties": {
+          "enableIPForwarding": true,
+          "networkSecurityGroup": {
+            "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+            },
+          "ipConfigurations": [
+            {
+              "name": "ipconfig1",
+              "properties": {
+                "subnet": {
+                  "id": "[variables('subnet1Ref')]"
+                },
+                "privateIPAllocationMethod": "Dynamic",
+                "publicIpAddress": {
+                  "id": "[resourceId('Microsoft.Network/publicIpAddresses', variables('publicIpAddressName2'))]"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "[variables('nicA2')]",
+        "type": "Microsoft.Network/networkInterfaces",
+        "apiVersion": "2017-06-01",
+        "location": "[variables('location')]",
+        "comments": "This will be your Secondary NIC",
+        "dependsOn": [
+          "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]"
+        ],
+        "properties": {
+          "enableIPForwarding": true,
+          "networkSecurityGroup": {
+            "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+            },
+          "ipConfigurations": [
+            {
+              "name": "ipconfig1",
+              "properties": {
+                "subnet": {
+                  "id": "[variables('subnet2Ref')]"
+                },
+                "privateIPAllocationMethod": "Dynamic"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "[variables('nicB2')]",
+        "type": "Microsoft.Network/networkInterfaces",
+        "apiVersion": "2017-06-01",
+        "location": "[variables('location')]",
+        "comments": "This will be your Secondary NIC",
+        "dependsOn": [
+          "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]"
+        ],
+        "properties": {
+          "enableIPForwarding": true,
+          "networkSecurityGroup": {
+            "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+            },
+          "ipConfigurations": [
+            {
+              "name": "ipconfig1",
+              "properties": {
+                "subnet": {
+                  "id": "[variables('subnet2Ref')]"
+                },
+                "privateIPAllocationMethod": "Dynamic"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "[variables('nicA3')]",
+        "type": "Microsoft.Network/networkInterfaces",
+        "apiVersion": "2017-06-01",
+        "location": "[variables('location')]",
+        "comments": "This will be your HA NIC",
+        "dependsOn": [
+          "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]"
+        ],
+        "properties": {
+          "enableIPForwarding": true,
+          "networkSecurityGroup": {
+            "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+            },
+          "ipConfigurations": [
+            {
+              "name": "ipconfig1",
+              "properties": {
+                "subnet": {
+                  "id": "[variables('subnet3Ref')]"
+                },
+                "privateIPAllocationMethod": "Dynamic"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "[variables('nicB3')]",
+        "type": "Microsoft.Network/networkInterfaces",
+        "apiVersion": "2017-06-01",
+        "location": "[variables('location')]",
+        "comments": "This will be your HA NIC",
+        "dependsOn": [
+          "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]"
+        ],
+        "properties": {
+          "enableIPForwarding": true,
+          "networkSecurityGroup": {
+            "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+            },
+          "ipConfigurations": [
+            {
+              "name": "ipconfig1",
+              "properties": {
+                "subnet": {
+                  "id": "[variables('subnet3Ref')]"
+                },
+                "privateIPAllocationMethod": "Dynamic"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "[variables('publicIpAddressName1')]",
+        "type": "Microsoft.Network/publicIPAddresses",
+        "apiVersion": "2020-07-01",
+        "location": "[variables('location')]",
+        "comments": "Public IP for your WAN NIC",
+        "sku": {
+          "name": "[parameters('PublicIPAddressSku')]"
+        },
+        "properties": {
+          "publicIPAllocationMethod": "Static"
+        },
+                    "zones": [
+                  "[parameters('zoneA')]"
+              ]
+      },
+      {
+        "name": "[variables('publicIpAddressName2')]",
+        "type": "Microsoft.Network/publicIPAddresses",
+        "apiVersion": "2020-07-01",
+        "location": "[variables('location')]",
+        "comments": "Public IP for your WAN NIC",
+        "sku": {
+          "name": "[parameters('PublicIPAddressSku')]"
+        },
+        "properties": {
+          "publicIPAllocationMethod": "Static"
+        },
+                    "zones": [
+                  "[parameters('zoneB')]"
+              ]
+      },
+      {
+        "name": "[variables('networkSecurityGroupName')]",
+        "type": "Microsoft.Network/networkSecurityGroups",
+        "apiVersion": "2016-09-01",
+        "location": "[variables('location')]",
+        "comments": "Network Security Group (NSG) for your Primary NIC",
+        "properties": {
+          "securityRules": [
+            {
+              "name": "In-Any",
+              "properties": {
+                "priority": 4096,
+                "sourceAddressPrefix": "*",
+                "protocol": "*",
+                "destinationPortRange": "*",
+                "access": "Allow",
+                "direction": "Inbound",
+                "sourcePortRange": "*",
+                "destinationAddressPrefix": "*"
+              }
+            },
+            {
+              "name": "Out-Any",
+              "properties": {
+              "priority": 4096,
+              "sourceAddressPrefix": "*",
+              "protocol": "*",
+              "destinationPortRange": "*",
+              "access": "Allow",
+              "direction": "Outbound",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*"
+                }  
+            }
+          ]
+        }
+      },
+      {
+        "type": "Microsoft.Compute/virtualMachines/extensions",
+        "name": "[concat(parameters('virtualMachineName'), '/', variables('extensionName'))]",
+        "apiVersion": "2015-06-15",
+        "location": "[variables('location')]",
+        "dependsOn": [
+          "[concat('Microsoft.Compute/virtualMachines/', parameters('virtualMachineName'))]"
+        ],
+        "properties": {
+          "publisher": "Microsoft.OSTCExtensions",
+          "type": "CustomScriptForLinux",
+          "typeHandlerVersion": "1.4",
+          "autoUpgradeMinorVersion": false,
+          "settings": {
+            "fileUris": [
+              "[concat(parameters('OPNScriptURI'),parameters('ShellScriptName'))]" 
+            ],
+            "commandToExecute": "[concat('sh ',parameters('ShellScriptName'),' ',parameters('OPNConfigFile'))]"
+          }             
+        }
+      }
+    ],
+    "outputs": {}
+  }
+  
