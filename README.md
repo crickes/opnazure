@@ -1,5 +1,13 @@
 # OPNsense Firewall on FreeBSD VM
 
+
+**Deploy a Pair of Servers**
+
+Besure to select Zone 1 in the Zones configuration
+
+[![Deploy To Azure](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazure.svg?sanitize=true)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fcrickes%2Fopnazure%2Fmaster%2Fazuredeplypair.json)
+
+
 **Step 1 - Deploy an Instance on Azure and setup a VNET**
 
 Besure to select Zone 1 in the Zones configuration
