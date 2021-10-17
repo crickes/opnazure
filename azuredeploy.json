@@ -11,20 +11,9 @@
     },
     "virtualMachineName": {
       "type": "string",
+      "defaultValue": "opns-01",
       "metadata": {
         "description": "OPN NVA Manchine Name"
-      }
-    },
-    "TempUsername": {
-      "type": "string",
-      "metadata": {
-        "description": "Default Temporary Admin username (Only used to deploy FreeBSD VM)"
-      }
-    },
-    "TempPassword": {
-      "type": "securestring",
-      "metadata": {
-        "description": "Default Temporary Admin password (Only used to deploy FreeBSD VM)"
       }
     },
    "virtualNetworkName": {
@@ -111,7 +100,9 @@
     "subnet2Ref": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), variables('subnet2Name'))]",
     "subnet3Ref": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), variables('subnet3Name'))]",
     "networkSecurityGroupName": "[concat(parameters('virtualMachineName'),'-NSG')]",
-    "location": "[resourceGroup().location]"
+    "location": "[resourceGroup().location]",
+    "TempUsername":"tempuser",
+    "TempPassword":"Tempu$erTempu$er"
   },
   "resources": [
     {
@@ -128,8 +119,8 @@
       "properties": {
         "osProfile": {
           "computerName": "[parameters('virtualMachineName')]",
-          "adminUsername": "[parameters('TempUsername')]",
-          "adminPassword": "[parameters('TempPassword')]"
+          "adminUsername": "[variables('TempUsername')]",
+          "adminPassword": "[variables('TempPassword')]"
         },
         "hardwareProfile": {
           "vmSize": "[parameters('virtualMachineSize')]"
