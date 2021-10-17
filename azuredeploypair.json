@@ -519,11 +519,32 @@
       },
       {
         "type": "Microsoft.Compute/virtualMachines/extensions",
-        "name": "[concat(parameters('virtualMachineName'), '/', variables('extensionName'))]",
+        "name": "[concat(parameters('virtualMachineName1'), '/', variables('extensionName'))]",
         "apiVersion": "2015-06-15",
         "location": "[variables('location')]",
         "dependsOn": [
-          "[concat('Microsoft.Compute/virtualMachines/', parameters('virtualMachineName'))]"
+          "[concat('Microsoft.Compute/virtualMachines/', parameters('virtualMachineName1'))]"
+        ],
+        "properties": {
+          "publisher": "Microsoft.OSTCExtensions",
+          "type": "CustomScriptForLinux",
+          "typeHandlerVersion": "1.4",
+          "autoUpgradeMinorVersion": false,
+          "settings": {
+            "fileUris": [
+              "[concat(parameters('OPNScriptURI'),parameters('ShellScriptName'))]" 
+            ],
+            "commandToExecute": "[concat('sh ',parameters('ShellScriptName'),' ',parameters('OPNConfigFile'))]"
+          }             
+        }
+      },
+      {
+        "type": "Microsoft.Compute/virtualMachines/extensions",
+        "name": "[concat(parameters('virtualMachineName2'), '/', variables('extensionName'))]",
+        "apiVersion": "2015-06-15",
+        "location": "[variables('location')]",
+        "dependsOn": [
+          "[concat('Microsoft.Compute/virtualMachines/', parameters('virtualMachineName2'))]"
         ],
         "properties": {
           "publisher": "Microsoft.OSTCExtensions",
